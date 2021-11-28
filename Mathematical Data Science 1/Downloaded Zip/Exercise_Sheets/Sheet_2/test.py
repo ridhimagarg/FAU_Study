@@ -1,0 +1,1 @@
+tree('A',[tree('B',[tree('D',[tree('F',[tree('K',[]),tree('L',[])])]),tree('E',[])]),tree('C',[tree('G',[]),tree('H',[tree('I',[tree('S',[])]),tree('J a = ',[])])])])
