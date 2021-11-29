@@ -1,0 +1,6 @@
+featurespace.pyct
+venv/
+.idea/
+.mypy_cache/
+.pytest_cache/
+.settings/

@@ -1,0 +1,7 @@
+# Also an requirement pyqt5
+pyqt5
+numpy
+scipy
+cvxopt
+matplotlib
+scikit-learn
