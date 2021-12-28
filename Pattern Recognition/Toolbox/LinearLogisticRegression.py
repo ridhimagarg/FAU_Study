@@ -41,7 +41,7 @@ class LinearLogisticRegression(object):
     def __init__(self, learningRate=0.5, maxIterations=100):
 
         self.learningRate = 0.5
-        self.maxIterations = 100
+        self.maxIterations = 50
         # self.theta = np.random.normal()
 
         return None
@@ -52,26 +52,40 @@ class LinearLogisticRegression(object):
         You need to map the to class number somehow to 0 and 1.
         """
 
+        X = np.vstack((X.T, np.ones(len(X))))
 
-        intitial_theta = np.zeros((2,1))
+        print(X.shape)
+        intitial_theta = np.random.rand(X.shape[0], 1)
+        #np.zeros((X.shape[0],1))
+        
         self.theta = intitial_theta
 
         while self.maxIterations:
 
-            print("Train data shape", X.shape)
-            print("Test data shape", y.shape)
+            # print("Train data shape", X.shape)
+            # print("Test data shape", y.shape)
 
-            y_pred = [self.gFunc(x, self.theta) for x in X]
+            # y_pred = [self.gFunc(x, self.theta) for x in X.T]
+
+            y_pred = self.gFunc(X.T, self.theta)
+
+            # print(np.array(y_pred).shape)
+
+            # print(np.array(y).shape)
+
+            dertheta = X @ (2* (np.array(y).reshape(10,1) - np.array(y_pred)) * self.derivative_sigmoid(np.array(y_pred)))
 
             # print((2* np.multiply((y.reshape(1,10) - np.array(y_pred).reshape(1,10)),  np.array([self.derivative_sigmoid(x) for x in y_pred]).reshape(1,10))).shape)
 
             # dertheta = ((2* (y- np.array(y_pred)), np.array([self.derivative_sigmoid(x) for x in np.array(y_pred)]).T).T* X).T
 
-            dertheta = (2* np.multiply((y.reshape(1,10) - np.array(y_pred).reshape(1,10)),  np.array([self.derivative_sigmoid(x) for x in y_pred]).reshape(1,10))) @ X
+            # dertheta = (2* np.multiply((y.reshape(1,10) - np.array(y_pred).reshape(1,10)),  np.array([self.derivative_sigmoid(x) for x in y_pred]).reshape(1,10))) @ X
 
-            print("Derivative of weights shape", dertheta.shape)
+            # print("Derivative of weights shape", dertheta.shape)
 
-            self.theta = self.theta - self.learningRate*dertheta.reshape(2,1)
+            self.theta = self.theta - self.learningRate*dertheta
+
+            print(self.theta)
 
             self.maxIterations -=1
         
@@ -93,8 +107,13 @@ class LinearLogisticRegression(object):
 
     def predict(self, X):
 
+        X = np.vstack((X.T, np.ones(len(X))))
+
         print("Test data", X.shape)
 
+        print(self.theta)
+
+        return self.gFunc(X.T, self.theta)
 
         return [1/(1+ np.exp(-np.dot(x, self.theta))) for x  in X]
 
