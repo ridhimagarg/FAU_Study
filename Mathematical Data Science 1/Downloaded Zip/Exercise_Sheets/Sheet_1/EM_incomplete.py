@@ -7,24 +7,41 @@ from matplotlib.patches import Ellipse
 import matplotlib.transforms as transforms
 from math import sqrt, pi
 from matplotlib.widgets import Slider, Button
+from numpy.core.shape_base import block
+
+# from Solution_4.kernel_PCA import gaussian_kernel
 np.random.seed(3)
 
 colors = ["#cccc00", "#006600", "m", "b", "r"]
 
+
+## Formula to calculate the gaussian formula
+def gaussian_formula(x, mean, sigma):
+
+    return np.exp(-0.5* ((x-mean) @ ((np.linalg.inv(sigma)) @ (x-mean))) )/ np.sqrt(((2*pi)**M)* np.linalg.det(sigma))
+
+
+## Main algorithm
 def EM(data, K, n_iter = 25, return_all_iterations=False):
     N, M = data.shape # assume: N is number of data points, M is each data point's dimension
 
     sigma_def = 3
 
     # random initialization of cluster centers 
+    ## Each cluster will have dimension as of dimension of our data like for 2-D data,  for ccluster 1 (x1,x2) for 3-D data (x1,x2,x3) for cluster 2 (x1', x2'), (x1',x2',x3') etc..
     m = np.zeros((K,M))
     for mm in range(M):
         m[:, mm] = np.random.uniform(np.min(data[:,mm]), np.max(data[:,mm]), (K, ))
+
+    
     Sigma = [sigma_def*np.eye(M) for kk in range(K)]
+
+    ## responsbility vector for each data point with each cluster.
     gamma = 1/K*np.ones((N,K), dtype=np.int32)
+    ## Prior probability for each cluster
     p = 1/K*np.ones((K,))
     gamma_old = None
-    
+
     
     # if we want to get back all parameters for each single iteration
     if return_all_iterations:
@@ -46,31 +63,60 @@ def EM(data, K, n_iter = 25, return_all_iterations=False):
     for it in range(n_iter):
         # assignment step / E step
         for n in range(N):
+            x = data[n,:]
             #########   EDIT HERE START   #########
-            gamma = 0 # compute gamma (responsibility)
+
+            terms = [p[k]* gaussian_formula(data[n], m[k,:], Sigma[k]) for k in range(K)]
+            # terms = np.array([p[k]*1/sqrt((2*pi)**M*np.linalg.det(Sigma[k])) * np.exp(-0.5*(x-m[k,:]) @ (np.linalg.inv(Sigma[k]) @ (x-m[k,:]))) for k in range(K)])
+            # terms = terms/np.sum(terms)
+            print("Terms", terms)
+            ## For each data point there will be gamma(responsbility) vector of shape of  of data
+            gamma[n, :] = terms/np.sum(terms)
             #########   EDIT HERE END   #########
         
         
-            
+        print("Gamma shape", gamma.shape)    
         if return_all_iterations:
             gamma_history = np.append(gamma_history, [gamma], 0)
         
 
         # update step
         #########   EDIT HERE START   #########
-        m_new = 0 # compute m_new (new cluster means)
+        Nk = [np.sum(gamma[:, k]) for k in range(K)] ## Summing all data point responsbilities for each cluster here we have 2 clusters.
+        # print("Nk shaoe", Nk)
+        p = np.array(Nk)/N
+        means = np.dot(gamma.T, data) ## It will be of shape (K, M) k: no. of clusters center, M: Dimension of data 
+        # print(means)
+        m_new = np.array([ means[k, :]/Nk[k] for k in range(K)]) ## Final calculate cluster centers
+        print(m_new)
+        # print(means/Nk)
+        # m_new = 0 # compute m_new (new cluster means)
         #########   EDIT HERE END   #########
         
         # if we haven't moved a lot, break the loop and stick with current clustering
         if np.sum(np.sum((m-m_new)*(m-m_new))) < 10**-8:
+            print("breajing!!")
             break
         
         # else set means and continue
         m = m_new
                     
         #########   EDIT HERE START   #########
+        
         Sigma_new = [np.zeros((M, M)) for k in range(K)] # compute Sigma_new (new cluster covariances)
-        p = 0 # compute p (new cluster weights)
+        for k in range(K):
+            Sigmak = np.zeros((M,M))
+            for n in range(N):
+                x = data[n, :]
+                Sigmak += gamma[n, k] * np.dot((x-m[k,:]).reshape((-1,1)), (x-m[k,:]).reshape((1,-1))) ## Calculating the sum of covariannces of each data point for that cluster
+            Sigma_new[k] = Sigmak/Nk[k] ## Diving by each cluster responsbility sum
+
+        Sigma = [np.copy(Sigma_new[k]) for k in range(K)]
+
+        print("Sigma new", Sigma_new)
+
+        # print(np.dot((data-m).T, (data-m) ))
+        # p = 0 # compute p (new cluster weights)
         # would be nice to catch the event where Sigma -> 0 (dangerous), in which case we stop the iteration
         #########   EDIT HERE END   #########
         
@@ -88,7 +134,7 @@ def EM(data, K, n_iter = 25, return_all_iterations=False):
 
 # matplotlib ellipse plotter (from matplotlib.org)
 
-
+## Few plotting functions
 def colorFader(c1,c2,mix=0): #fade (linear interpolate) from color c1 (at mix=0) to c2 (mix=1)
     c1=np.array(mpl.colors.to_rgb(c1))
     c2=np.array(mpl.colors.to_rgb(c2))
@@ -155,7 +201,7 @@ if __name__ == "__main__":
     K = 2 # number of clusters
     
     
-    option = 1 # select scenario (1, 2, 3, 4)
+    option = 6 # select scenario (1, 2, 3, 4)
     
     # description of options:
     # option 1: three clusters with few points
@@ -224,6 +270,8 @@ if __name__ == "__main__":
     N, M = data.shape
     
     ret = EM(data, K, n_iter = n_iter, return_all_iterations=True)
+
+    print(ret)
     
     
     m = ret["m"]
@@ -241,7 +289,7 @@ if __name__ == "__main__":
     plt.ion()
     
     
-    
+    ## Function to draw plots, see how EM is performing clustering
     def drawfig(it):
         plt.figure()
         ax1 = plt.subplot(1,2,1)
@@ -301,7 +349,9 @@ if __name__ == "__main__":
         #plt.title("iteration " + str(it) + ": after update")
         #ax1.set_aspect('equal')
         #ax2.set_aspect('equal')
+        # plt.plot()
         plt.show()
+        plt.savefig(f"figure_{it}.png")
     
     drawfig(0)
     drawfig(m_history.shape[0]-2)
